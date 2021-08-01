@@ -1,8 +1,10 @@
 package com.builditmasters.testquizapp;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.animation.Animator;
+import android.app.Dialog;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
@@ -10,15 +12,27 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
+import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.builditmasters.testquizapp.Adapters.SetAdapter;
 import com.builditmasters.testquizapp.Model.Question;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.builditmasters.testquizapp.SetsActivity.CATEGORY_ID;
 
 public class GameActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -27,11 +41,17 @@ public class GameActivity extends AppCompatActivity implements View.OnClickListe
     private List<Question> QuestionList;
     private int quesNum;
     private CountDownTimer countDownTimer;
+    private int score;
+    private int setNo;
+    private FirebaseFirestore firebaseFirestore;
+    private Dialog loadingDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_game);
+
+        firebaseFirestore = FirebaseFirestore.getInstance();
 
         question_number = findViewById(R.id.question_number);
         question = findViewById(R.id.question);
@@ -47,9 +67,18 @@ public class GameActivity extends AppCompatActivity implements View.OnClickListe
         option03.setOnClickListener(this);
         option04.setOnClickListener(this);
 
+        setNo = getIntent().getIntExtra("SETNO", 1);
+
+//        loadingDialog = new Dialog(GameActivity.this);
+//        loadingDialog.setContentView(R.layout.loading_progressbar);
+//        loadingDialog.setCancelable(false);
+//        loadingDialog.getWindow().setBackgroundDrawableResource(R.drawable.progressbar_background);
+//        loadingDialog.getWindow().setLayout(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+//        loadingDialog.show();
+
         getQuestiosList();
 
-
+        score = 0;
 
 
     }
@@ -61,13 +90,48 @@ public class GameActivity extends AppCompatActivity implements View.OnClickListe
 
         QuestionList = new ArrayList<>();
 
-        QuestionList.add(new Question("Quest 01", "A", "B", "CR", "D", 2));
-        QuestionList.add(new Question("Quest 02", "G", "H", "C", "DG", 3));
-        QuestionList.add(new Question("Quest 03", "N", "B", "CD", "J", 4));
-        QuestionList.add(new Question("Quest 04", "O", "BS", "CG", "DY", 1));
-        QuestionList.add(new Question("Quest 05", "5", "3", "6", "D", 2));
+        firebaseFirestore.collection("QUIZ").document("CAT0" + String.valueOf(CATEGORY_ID))
+                .collection("SET0" + String.valueOf(setNo))
+                .get().addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+            @Override
+            public void onComplete(@NonNull Task<QuerySnapshot> task) {
 
-        setQuestion();
+                if (task.isSuccessful()){
+                    QuerySnapshot questions = task.getResult();
+
+                    Log.d("looooooooooooooooggggg", String.valueOf(questions.size()));
+
+                    for (QueryDocumentSnapshot doc : questions ){
+                        QuestionList.add(new Question(doc.getString("QUESTION"),
+                                doc.getString("A"),
+                                doc.getString("B"),
+                                doc.getString("C"),
+                                doc.getString("D"),
+                                Integer.valueOf(doc.getString("ANSWER"))
+                                ));
+
+                        Log.d("vaaaaaalueeeee", doc.getString("QUESTION"));
+                    }
+
+                    setQuestion();
+
+
+                }else {
+                    Toast.makeText(GameActivity.this,"Data not loaded. please check your connection",Toast.LENGTH_LONG).show();
+                }
+
+//                loadingDialog.cancel();
+
+            }
+        });
+
+//        QuestionList.add(new Question("Quest 01", "A", "B", "CR", "D", 2));
+//        QuestionList.add(new Question("Quest 02", "G", "H", "C", "DG", 3));
+//        QuestionList.add(new Question("Quest 03", "N", "B", "CD", "J", 4));
+//        QuestionList.add(new Question("Quest 04", "O", "BS", "CG", "DY", 1));
+//        QuestionList.add(new Question("Quest 05", "5", "3", "6", "D", 2));
+
+
 
     }
 
@@ -147,6 +211,7 @@ public class GameActivity extends AppCompatActivity implements View.OnClickListe
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 ((Button)view).setBackgroundTintList(ColorStateList.valueOf(Color.GREEN));
             }
+            score++;
 
         }else {
             //Answer is wrong
@@ -217,6 +282,7 @@ public class GameActivity extends AppCompatActivity implements View.OnClickListe
         }else {
             //Go to Score Activity
             Intent goScore = new Intent(GameActivity.this, ScoreActivity.class);
+            goScore.putExtra("SCORE", String.valueOf(score) + "/" + String.valueOf(QuestionList.size() ));
             startActivity(goScore);
             GameActivity.this.finish();
         }
@@ -279,5 +345,10 @@ public class GameActivity extends AppCompatActivity implements View.OnClickListe
                 });
     }
 
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
 
+        countDownTimer.cancel();
+    }
 }

@@ -1,12 +1,15 @@
 package com.builditmasters.testquizapp.Adapters;
 
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
+import com.builditmasters.testquizapp.GameActivity;
 import com.builditmasters.testquizapp.R;
+import com.builditmasters.testquizapp.SetsActivity;
 
 public class SetAdapter extends BaseAdapter {
 
@@ -43,6 +46,15 @@ public class SetAdapter extends BaseAdapter {
         }else {
             view = convertView;
         }
+
+        view.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(parent.getContext(), GameActivity.class);
+                intent.putExtra("SETNO", position + 1);
+                parent.getContext().startActivity(intent);
+            }
+        });
 
         ((TextView) view.findViewById(R.id.setNum_textView)).setText(String.valueOf(position +1));
 
