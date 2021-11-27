@@ -28,20 +28,10 @@ public class SplashActivity extends AppCompatActivity {
         firebaseFirestore = FirebaseFirestore.getInstance();
 
 
-//        final Intent i = new Intent(this,MainActivity.class);
         Thread timer = new Thread(){
             public void run(){
 
                 loadData();
-//                try{
-//                    sleep(1000);
-//                }catch (InterruptedException e){
-//                    e.printStackTrace();
-//                }finally {
-//                    startActivity(i);
-//                    finish();
-
-//                }
             }
         };
         timer.start();
